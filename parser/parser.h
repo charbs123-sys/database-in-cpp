@@ -28,6 +28,7 @@ namespace Query
     };
 
     Conditions conditions{};
+
   };
 
   enum SelectParsing
@@ -38,6 +39,11 @@ namespace Query
   };
 }
 
+void ltrim(std::string& s);
+void rtrim(std::string& s);
+std::string_view trim(std::string_view s);
+
+std::ostream& operator<<(std::ostream& cout, const Query::Instructions& instructions);
 
 class Parser
 {
@@ -60,5 +66,6 @@ class Parser
 
   public:
     Parser(std::string_view user_input);
+    Query::Instructions get_user_instructions();
 };
 
