@@ -15,6 +15,16 @@ namespace Query
     number_of_queries,
   };
 
+  enum Inequalities 
+  {
+    equal,
+    not_equal,
+    less_than,
+    less_than_equal,
+    greater_than,
+    greater_than_equal,
+  };
+
   struct Instructions
   {
     std::vector<std::string_view> select_column_names{};
@@ -23,7 +33,7 @@ namespace Query
     struct Conditions 
     {
       std::string_view first_table_name {};
-      std::string_view inequality{"null"};
+      Inequalities inequality{equal};
       std::string_view second_table_name {};
     };
 
@@ -31,6 +41,7 @@ namespace Query
 
   };
 
+  // this shouldn't be in the Query namespace
   enum SelectParsing
   {
     in_select,
@@ -53,8 +64,9 @@ class Parser
     const std::string_view first_word();
     Query::Instructions user_instructions;
 
-    void parse_user_query(Query::Type query_type);
+    void parse_user_query();
     void select_parser();
+    Query::Inequalities inequality_to_enum(std::string_view inequality_substring);
     
     template <typename T>
     void populate_user_instructions(std::basic_string_view<T> token, Query::SelectParsing cur_parsing_area);

@@ -1,3 +1,4 @@
+#include <ios>
 #include <iostream>
 #include <algorithm>
 #include "parser.h"
@@ -50,16 +51,30 @@ std::string_view trim(std::string_view s) {
 
 Parser::Parser(std::string_view user_input) : m_user_input(user_input)
 {
-  const Query::Type query_type {identify_query_type()};
-  std::cout << "This is the query type " << query_type << "\n";
-  parse_user_query(query_type);
+  parse_user_query();
   std::cout << "user query finished" << "\n";
+}
 
+void Parser::parse_user_query()
+{
+  switch (identify_query_type())
+  {
+    case Query::q_select: 
+      select_parser();
+      std::cout << "select parser finished";
+      break;
+//    case Query::q_insert: return insert_parser();
+//    case Query::q_delete: return delete_parser();
+//    case Query::q_create: return create_parser();
+//    case Query::q_drop: return drop_parser();
+    default: throw std::invalid_argument("Could not match query type");
+  }
+  
 }
 
 const Query::Type Parser::identify_query_type()
 {
-    auto word = first_word(); // replace query_ with your string member
+    auto word = first_word(); 
 
     if (word == "SELECT") return Query::q_select;
     if (word == "INSERT") return Query::q_insert;
@@ -76,23 +91,6 @@ const std::string_view Parser::first_word()
   return m_user_input.substr(0, end);
 }
 
-void Parser::parse_user_query(Query::Type query_type)
-{
-  switch (query_type)
-  {
-    case Query::q_select: 
-      select_parser();
-      std::cout << "select parser finished";
-      break;
-//    case Query::q_insert: return insert_parser();
-//    case Query::q_delete: return delete_parser();
-//    case Query::q_create: return create_parser();
-//    case Query::q_drop: return drop_parser();
-    default: throw std::invalid_argument("Could not match query type");
-  }
-  
-}
-
 
 void Parser::select_parser()
   /*
@@ -104,6 +102,7 @@ void Parser::select_parser()
 {
   int cursor {0};
   Query::SelectParsing cur_parsing_area {Query::in_select};
+  m_user_input = trim(m_user_input);
 
   while (cursor != std::string_view::npos)
   {
@@ -112,7 +111,9 @@ void Parser::select_parser()
     auto end {m_user_input.find_first_of(" ", cursor)};
     auto token {m_user_input.substr(cursor, end - cursor)};
     cursor = end;
-    std::cout << "this is the main loop token - " << token << '\n';
+
+    std::cout << "this is the main loop end - " << end << '\n';
+    std::cout << "this is the main loop token - " << token << "token before\n";
 
     if (token == "SELECT") 
     {
@@ -141,6 +142,7 @@ void Parser::select_parser()
       break;
     }
 
+    std::cout << "this is the end after branch " << end << '\n';
     std::cout << "this is the token " << token << '\n';
     trim(token); 
     populate_user_instructions(token, cur_parsing_area);
@@ -209,13 +211,15 @@ Query::Instructions::Conditions Parser::parse_in_conditions(std::basic_string_vi
   token = token.substr(end + 1, token.length());
   std::cout << "Token after shortening " << token << '\n';
   
+  // get the inequality 
   end = token.find_first_of(" ");
-  statement_inequality_data.inequality = token.substr(0, end);
+  statement_inequality_data.inequality = inequality_to_enum(token.substr(0, end));
   std::cout << "inequality name - " << token.substr(0, end) << '\n';
 
   token = token.substr(end + 1, token.length());
   std::cout << "Token after shortening " << token << '\n';
 
+  // get the second column name
   end = std::string_view::npos;
   statement_inequality_data.second_table_name = token.substr(0, end);
   std::cout << "second table name - " << token.substr(0, end) << '\n';
@@ -226,6 +230,19 @@ Query::Instructions::Conditions Parser::parse_in_conditions(std::basic_string_vi
 Query::Instructions Parser::get_user_instructions()
 {
   return user_instructions;
+}
+
+Query::Inequalities Parser::inequality_to_enum(std::string_view inequality_substring)
+{
+  if (inequality_substring == "<=") return Query::less_than_equal;
+  if (inequality_substring == "<") return Query::less_than;
+  if (inequality_substring == ">=") return Query::greater_than_equal;
+  if (inequality_substring == ">") return Query::greater_than;
+  if (inequality_substring == "==") return Query::equal;
+  if (inequality_substring == "!=") return Query::not_equal;
+  std::cout << "did not match any condition" << '\n';
+  throw std::io_errc(); 
+  return Query::equal;
 }
 
 std::ostream& operator<<(std::ostream& cout, const Query::Instructions& instructions)
